@@ -1,5 +1,9 @@
 <?php
 
+$javac = '/home/donhatch/Downloads/jdk-11/bin/javac';
+
+// TODO: flock
+
 // Name?
 //      magiccube4d.2020-08-16T12:13:51-07:00.146f56a16f44dbcb25f74773412eccd1359b9f1b.jar
 // date from:
@@ -8,7 +12,7 @@
 //   git clone https://github.com/cutelyaware/magiccube4d.git repo
 
 function exec_or_die($command) {
-  print('  executing command '.htmlspecialchars($command).'<br>');
+  print('  executing command "'.htmlspecialchars($command).'"<br>');
   ob_flush();
   exec($command, $output, $exitcode);
   $output = implode("\n", $output);
@@ -22,7 +26,6 @@ function exec_or_die($command) {
 }
 
 $commit = trim($_GET["commit"]);
-// TODO: validate!  commit should be 40 hex digits
 if ($commit != '' && !preg_match('/^[0-9a-f]{40}$/i', $commit)) {
   print('<html><body>ERROR: "'.htmlspecialchars($commit).'" does not look like a full commit hash</body></html>');
   print("<hr>");
@@ -68,61 +71,65 @@ if ($commit != '') {
 
     if (true)
     {
-      /*
-      if (cache/repo doesnt exist) {
-        $command = 'git clone https://github.com/cutelyaware/magiccube4d.git cache/repo';
-        print('  executing command '.htmlspecialchars($command).'<br>');
+      if (!file_exists('cache/mc4d-4-3-216.jar')) {
+        $url = 'https://github.com/cutelyaware/magiccube4d/releases/download/v4.3.216/mc4d-4-3-216.jar';
+        print("fetching $url ...<br>");
         ob_flush();
-        exec($command, $output, $exitcode);
-        $output = implode("\n", $output);
-        print('  output="'.htmlspecialchars($output).'"<br>');
-        print('  exitcode="'.htmlspecialchars($exitcode).'"<br>');
-        if ($exitcode != 0) {
-          print("ERROR: exitcode $exitcode not as expected<br>");
+        if (true) {
+          $command = "mkdir -p cache && curl -L $url > cache/mc4d-4-3-216.jar";
+          exec_or_die($command);
+        } else if (false) {
+          // DOES NOT WORK
+          $fh = fopen($url, 'r') or die($php_errmsg);
+          $contents = '';
+          while (! feof($fh)) {
+            $contents .= fread($fh, 1048576);
+          }
+          fclose($fh);
+          exec_or_die('touch cache/mc4d-4-3-216.jar');
+        } else {
+          // DOES NOT WORK
+          $contents = file_get_contents($url);
+        }
+        print("contents = \"".htmlspecialchars($contents).'"<br>');
+      }
+      if (!file_exists('cache/repo')) {
+        // Note that this `git clone` will create the cache directory if it doesn't exist too
+        $command = 'GIT_TERMINAL_PROMPT=0 git clone --quiet https://github.com/cutelyaware/magiccube4d.git cache/repo 2>&1';
+        $output = exec_or_die($command);
+        if ($output !== '') {
+          print('ERROR: output "'.htmlspecialchars($output).'" does not look as expected!<br>');
           exit(0);
         }
       } else {
-      }
-      */
-
-      $command = '(cd repo && git checkout --quiet master && git pull --quiet --ff-only && git show --quiet --no-patch --no-notes --pretty="%cI" '.$commit.') 2>&1';
-      print('  executing command '.htmlspecialchars($command).'<br>');
-      ob_flush();
-      exec($command, $output, $exitcode);
-      $output = implode("\n", $output);
-      print('  output="'.htmlspecialchars($output).'"<br>');
-      print('  exitcode="'.htmlspecialchars($exitcode).'"<br>');
-      if ($exitcode != 0) {
-        print("ERROR: exitcode $exitcode not as expected<br>");
-        exit(0);
+        $command = '(cd cache/repo && GIT_TERMINAL_PROMPT=0 git checkout --quiet master && git pull --quiet --ff-only)';
+        $output = exec_or_die($command);
+        if ($output !== '') {
+          print('ERROR: output "'.htmlspecialchars($output).'" does not look as expected!<br>');
+          exit(0);
+        }
       }
 
-      ob_flush();
+      $command = '(cd cache/repo && git show --quiet --no-patch --no-notes --pretty="%cI" '.$commit.') 2>&1';
+      $output = exec_or_die($command);
       if (!preg_match('/^\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d-\\d\\d:\\d\\d$/', $output)) {
         print('ERROR: output "'.htmlspecialchars($output).'" does not look as expected!<br>');
         exit(0);
       }
       // I don't like that final ':' in "2020-09-19T01:23:04-07:00";
-      // change it to "2020-09-19T01:23:04-0700" instead
+      // change it to "2020-09-19T01:23:04-0700" instead.
+      // And actually, jar files apparently don't like ':'s in them
+      // (it seems to ruin the executability), so remove them all.
       $timestamp = $output;
-      $timestamp = preg_replace('/:(\\d\\d)$/', '\\1', $timestamp);
+      $timestamp = preg_replace('/:/', '', $timestamp);
       print('  timestamp="'.htmlspecialchars($timestamp).'"<br>');
 
       $filename = 'magiccube4d.'.$timestamp.'.'.$commit.'.jar';
       print('  filename="'.htmlspecialchars($filename).'"<br>');
 
       if (true) {
-        $command = '(cd repo && git checkout --quiet '.$commit.') 2>&1';
-        print('  executing command '.htmlspecialchars($command).'<br>');
-        ob_flush();
-        exec($command, $output, $exitcode);
-        $output = implode("\n", $output);
-        print('  output="'.htmlspecialchars($output).'"<br>');
-        print('  exitcode="'.htmlspecialchars($exitcode).'"<br>');
-        if ($exitcode != 0) {
-          print("ERROR: exitcode $exitcode not as expected<br>");
-          exit(0);
-        }
+        $command = '(cd cache/repo && git checkout --quiet '.$commit.') 2>&1';
+        $output = exec_or_die($command);
         if ($output !== '') {
           print('ERROR: output "'.htmlspecialchars($output).'" does not look as expected!<br>');
           exit(0);
@@ -130,32 +137,13 @@ if ($commit != '') {
       }
 
       if (true) {
-        $command = '(cd repo/src && rm -f */*/*/*.class && javac -source 1.6 -target 1.6 -Xlint:-options */*/*/*.java 2>&1 | (grep -v deprecat || true)) 2>&1';
-        print('  executing command '.htmlspecialchars($command).'<br>');
-        ob_flush();
-        exec($command, $output, $exitcode);
-        $output = implode("\n", $output);
-        print('  output="'.htmlspecialchars($output).'"<br>');
-        print('  exitcode="'.htmlspecialchars($exitcode).'"<br>');
-        if ($exitcode != 0) {
-          print("ERROR: exitcode $exitcode not as expected<br>");
-          exit(0);
-        }
+        $command = '(cd cache/repo/src && rm -f */*/*/*.class && '.$javac.' -source 1.6 -target 1.6 -Xlint:-options */*/*/*.java 2>&1 | (egrep -v "deprecat|unchecked" || true)) 2>&1';
+        $output = exec_or_die($command);
       }
 
       if (true) {
-        // TODO: dependency on mc4d-4-3-216.jar
-        $command = '(rm -rf scratch && mkdir scratch && cd scratch && jar xvf ../mc4d-4-3-216.jar 2>&1 | (egrep -v " created: | inflated: " || true) && rm -rf com && cp -a ../repo/src/com ./ && sed "s/Class-Path: ./Created-By: (Don Hatch, from '.$commit.')/" < META-INF/MANIFEST.MF > META-INF/MANIFEST.MF.TEMP && mv META-INF/MANIFEST.MF.TEMP META-INF/MANIFEST.MF && jar -cfm ../cache/'.$filename.' META-INF/MANIFEST.MF .) 2>&1';
-        print('  executing command '.htmlspecialchars($command).'<br>');
-        ob_flush();
-        exec($command, $output, $exitcode);
-        $output = implode("\n", $output);
-        print('  output="'.htmlspecialchars($output).'"<br>');
-        print('  exitcode="'.htmlspecialchars($exitcode).'"<br>');
-        if ($exitcode != 0) {
-          print("ERROR: exitcode $exitcode not as expected<br>");
-          exit(0);
-        }
+        $command = '(/bin/rm -rf cache/scratch && mkdir cache/scratch && cd cache/scratch && jar -xf ../mc4d-4-3-216.jar && /bin/rm -rf com && cp -a ../../cache/repo/src/com ./ && sed "s/Class-Path: ./Created-By: (Don Hatch, from '.$commit.')/" < META-INF/MANIFEST.MF > META-INF/MANIFEST.MF.TEMP && /bin/mv META-INF/MANIFEST.MF.TEMP META-INF/MANIFEST.MF && jar -cfm ../../cache/'.$filename.' META-INF/MANIFEST.MF .) 2>&1';
+        $output = exec_or_die($command);
       }
 
   /*
@@ -163,7 +151,7 @@ if ($commit != '') {
   /bin/rm -rf scratch
   mkdir scratch
   cd scratch
-  jar xvf ../mc4d-4-3-216.jar
+  jar -xvf ../mc4d-4-3-216.jar
   /bin/rm -rf com
   cp -a ../com ./
   sed "s/Class-Path: ./Created-By: (Don Hatch, $(LANG=C date), from $COMMIT/" < META-INF/MANIFEST.MF > META-INF/MANIFEST.MF.TEMP
