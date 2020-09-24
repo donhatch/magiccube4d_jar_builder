@@ -171,7 +171,7 @@ if ($commit != '') {
 print('<form method="get">');
 print("<hr>");
 print('Build at this commit: <input type="text" name="commit" size="50"><br>');
-print('(see <a href="https://github.com/cutelyaware/magiccube4d/commits">here<a> for commit history)<br>');
+print('(see <a href="https://github.com/cutelyaware/magiccube4d/commits">https://github.com/cutelyaware/magiccube4d/commits<a> for commit history)<br>');
 print("<hr>");
 print("Previously built:");
 print("<br>");
