@@ -2,8 +2,6 @@
 
 $javac = '/usr/lib/jvm/java-11-openjdk-amd64/bin/javac';
 
-// TODO: flock
-
 // Name?
 //      magiccube4d.2020-08-16T12:13:51-07:00.146f56a16f44dbcb25f74773412eccd1359b9f1b.jar
 // date from:
@@ -42,14 +40,16 @@ exec('mkdir -p cache');
 exec('touch cache/lock');
 $lock = fopen('./cache/lock', 'r');
 if (!flock($lock, LOCK_EX|LOCK_NB)) {
-  print("Waiting for lock...<br>");
+  print("<small>");
+  print("Waiting for lock... ");
   ob_flush();
   flush();
   if (!flock($lock, LOCK_EX)) {
     print("Failed to acquire lock. !?");
     exit(0);
   }
-  print("acquired lock.");
+  print("acquired lock.<br>");
+  print("</small>");
   ob_flush();
   flush();
 }
@@ -88,7 +88,7 @@ if ($commit != '') {
     }
   }
   if ($found) {
-    print('Commit '.$commit.' seems to be built already:<br><a href="cache/$witness">'.htmlspecialchars($witness).'</a><br>');
+    print('Commit '.$commit.' seems to be built already:<br><a href="cache/'.$witness.'">'.htmlspecialchars($witness).'</a><br>');
   } else {
     print('Commit '.$commit.' doesn\'t seem to be built already; building...<br>');
     print('<hr>');
