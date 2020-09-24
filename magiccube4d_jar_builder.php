@@ -1,6 +1,6 @@
 <?php
 
-$javac = '/home/donhatch/Downloads/jdk-11/bin/javac';
+$javac = '/usr/lib/jvm/java-11-openjdk-amd64/bin/javac';
 
 // TODO: flock
 
@@ -14,6 +14,7 @@ $javac = '/home/donhatch/Downloads/jdk-11/bin/javac';
 function exec_or_die($command) {
   print('  executing command "'.htmlspecialchars($command).'"<br>');
   ob_flush();
+  flush();
   exec($command, $output, $exitcode);
   $output = implode("\n", $output);
   print('  output="'.htmlspecialchars($output).'"<br>');
@@ -49,7 +50,7 @@ if ($handle = opendir('./cache')) {
     }
     closedir($handle);
 }
-sort($list);
+rsort($list);
 
 if ($commit != '') {
   // Is commit in the list already?
