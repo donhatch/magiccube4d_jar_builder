@@ -26,9 +26,10 @@ function exec_or_die($command) {
   return $output;
 }
 
+
 $commit = trim($_GET["commit"]);
 if ($commit != '' && !preg_match('/^[0-9a-f]{40}$/i', $commit)) {
-  print('<html><body>ERROR: "'.htmlspecialchars($commit).'" does not look like a full commit hash</body></html>');
+  print('<html lang="en" class="notranslate" translate="no"><body>ERROR: "'.htmlspecialchars($commit).'" does not look like a full commit hash</body></html>');
   print("<hr>");
   exit(0);
 }
@@ -36,6 +37,13 @@ if ($commit != '' && !preg_match('/^[0-9a-f]{40}$/i', $commit)) {
 
 print('<html>');
 print('<body>');
+
+if (array_key_exists('clear', $_GET)) {
+    //print('  executing command "'.htmlspecialchars($command).'"<br>');
+    exec('/bin/rm -f cache/magiccube4d*.jar', $output, $exitcode);
+    //print('  output="'.htmlspecialchars($output).'"<br>');
+    //print('  exitcode="'.htmlspecialchars($exitcode).'"<br>');
+}
 
 $list = array();
 if ($handle = opendir('./cache')) {
@@ -170,21 +178,25 @@ if ($commit != '') {
 
 print('<form method="get">');
 print("<hr>");
-print('Build at this commit: <input type="text" name="commit" size="50"><br>');
+print('Build at this commit: <input type="text" name="commit" size="50">');
+print('<br>');
 print('(see <a href="https://github.com/cutelyaware/magiccube4d/commits">https://github.com/cutelyaware/magiccube4d/commits<a> for commit history)<br>');
 print("<hr>");
-print("Previously built:");
-print("<br>");
 
-foreach ($list as $item) {
-    print('  <a href="cache/'.htmlspecialchars($item).'">'.htmlspecialchars($item).'<a>');
-    print('  <br>');
+// weird-- If I end the form in any reasonable place, it adds an obnoxious blank line somewhere
+
+if (count($list) == 0) {
+  print("Nothing previously built.");
+} else {
+  print("Previously built:<br>");
+  foreach ($list as $item) {
+      print('  <a href="cache/'.htmlspecialchars($item).'">'.htmlspecialchars($item).'<a>');
+      print('  <br>');
+  }
+  print('</form>');
+  print('<form>');
+  print('<button type="submit" name="clear">Clear</button><br>');
 }
-
-$exists = false; // XXX
-if (!$exists) {
-}
-
 print('</form>');
 
 print('</body>');
