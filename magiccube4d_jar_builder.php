@@ -30,13 +30,29 @@ function exec_or_die($command) {
 $commit = trim($_GET["commit"]);
 if ($commit != '' && !preg_match('/^[0-9a-f]{40}$/i', $commit)) {
   print('<html lang="en" class="notranslate" translate="no"><body>ERROR: "'.htmlspecialchars($commit).'" does not look like a full commit hash</body></html>');
-  print("<hr>");
   exit(0);
 }
 // from now on, we don't need to escape $commit
 
 print('<html>');
 print('<body>');
+
+// Start by making sure the cache dir exists, and taking an advisory lock on it.
+exec('mkdir -p cache');
+exec('touch cache/lock');
+$lock = fopen('./cache/lock', 'r');
+if (!flock($lock, LOCK_EX|LOCK_NB)) {
+  print("Waiting for lock...<br>");
+  ob_flush();
+  flush();
+  if (!flock($lock, LOCK_EX)) {
+    print("Failed to acquire lock. !?");
+    exit(0);
+  }
+  print("acquired lock.");
+  ob_flush();
+  flush();
+}
 
 if (array_key_exists('clear', $_GET)) {
     //print('  executing command "'.htmlspecialchars($command).'"<br>');
@@ -77,6 +93,7 @@ if ($commit != '') {
     print('Commit '.$commit.' doesn\'t seem to be built already; building...<br>');
     print('<hr>');
     ob_flush();
+    flush();
 
     if (true)
     {
@@ -84,6 +101,7 @@ if ($commit != '') {
         $url = 'https://github.com/cutelyaware/magiccube4d/releases/download/v4.3.216/mc4d-4-3-216.jar';
         print("fetching $url ...<br>");
         ob_flush();
+        flush();
         if (true) {
           $command = "mkdir -p cache && curl -L $url > cache/mc4d-4-3-216.jar";
           exec_or_die($command);
