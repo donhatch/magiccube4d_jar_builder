@@ -2,12 +2,19 @@
 
 $javac = '/usr/lib/jvm/java-11-openjdk-amd64/bin/javac';
 
-// Name?
-//      magiccube4d.2020-08-16T12:13:51-07:00.146f56a16f44dbcb25f74773412eccd1359b9f1b.jar
+// Example jar name (note: colons in the name would mess up ability to be executable):
+//      magiccube4d.2020-08-16T121351-0700.146f56a16f44dbcb25f74773412eccd1359b9f1b.jar
 // date from:
 //   git show --no-patch --no-notes --pretty='%cI' ab2dbed99ae1a513e3b341b32209eab1ea1d2bc3
 // Repo made via:
 //   git clone https://github.com/cutelyaware/magiccube4d.git repo
+
+function CHECK($cond) {
+  if (!$cond) {
+    print("ERROR: CHECK failed");
+    exit(1);
+  }
+}
 
 function exec_or_die($command) {
   print('  executing command "'.htmlspecialchars($command).'"<br>');
@@ -23,6 +30,25 @@ function exec_or_die($command) {
   }
   return $output;
 }
+
+function find_unique_prefix_length($sorted_commits) {
+  $n = count($sorted_commits);
+  for ($length = 0; $length < $n; $length++) {
+    $good_so_far = true;
+    for ($i = 1; $i < $n; ++$i) {
+      if (substr($sorted_commits[$i-1], 0, $length) == substr($sorted_commits[$i], 0, $length)) {
+        //print("$length is bad because i=$i  ".$sorted_commits[$i-1]." ".$sorted_commits[$i]."");
+        $good_so_far = false;
+        break;
+      }
+    }
+    if ($good_so_far) {
+      return $length;
+    }
+  }
+  CHECK(false);
+}  // find_unique_prefix_length
+
 
 
 $commit = trim($_GET["commit"]);
@@ -61,7 +87,7 @@ if (array_key_exists('clear', $_GET)) {
     //print('  exitcode="'.htmlspecialchars($exitcode).'"<br>');
 }
 
-$list = array();
+$list = [];
 if ($handle = opendir('./cache')) {
     while (false !== ($entry = readdir($handle))) {
       if ($entry != "." && $entry != "..") {
@@ -92,6 +118,7 @@ if ($commit != '') {
   } else {
     print('Commit '.$commit.' doesn\'t seem to be built already; building...<br>');
     print('<hr>');
+    print('<div>');
     ob_flush();
     flush();
 
@@ -189,32 +216,129 @@ if ($commit != '') {
 
     }
 
+    print('<div>');
+
     print('Done.<br>');
     print('Hopefully that built: <a href="cache/'.$filename.'">'.$filename."</a><br>");
   }
 }  // $commit != ''
 
-print('<form method="get">');
-print("<hr>");
-print('Build at this commit: <input type="text" name="commit" size="50">');
-print('<br>');
-print('(see <a href="https://github.com/cutelyaware/magiccube4d/commits">https://github.com/cutelyaware/magiccube4d/commits<a> for commit history)<br>');
-print("<hr>");
+if (false) {
+  print('<form method="get">');
+  print("<hr>");
+  print('Build at this commit: <input type="text" name="commit" size="50">');
+  print('<br>');
+  print('(see <a href="https://github.com/cutelyaware/magiccube4d/commits">https://github.com/cutelyaware/magiccube4d/commits<a> for commit history)<br>');
+  print("<hr>");
+}
 
 // weird-- If I end the form in any reasonable place, it adds an obnoxious blank line somewhere
 
-if (count($list) == 0) {
-  print("Nothing previously built.");
-} else {
-  print("Previously built:<br>");
-  foreach ($list as $item) {
-      print('  <a href="cache/'.htmlspecialchars($item).'">'.htmlspecialchars($item).'<a>');
-      print('  <br>');
+if (false) {
+  if (count($list) == 0) {
+    print("Nothing previously built.");
+  } else {
+    print("Previously built:<br>");
+    foreach ($list as $item) {
+        print('  <a href="cache/'.htmlspecialchars($item).'">'.htmlspecialchars($item).'<a>');
+        print('  <br>');
+    }
+    print('</form>');
+    print('<form>');
+    print('<button type="submit" name="clear">Clear</button><br>');
   }
-  print('</form>');
-  print('<form>');
-  print('<button type="submit" name="clear">Clear</button><br>');
 }
+print('</form>');
+
+if (true) {
+
+  // Make a mapping from commit to previously (or just-now) built.
+  $commit2filename = [];
+  if (preg_match('/^[0-9a-f]{40}$/', $commit)) {
+    $commit2filename[$commit] = $filename;  // CBB: not sure if this fills it in when "seems to be built already", should be more principled
+  }
+  foreach ($list as $filename) {
+    $commitOfFilename = preg_replace('/^.*([0-9a-f]{40}).*$/', '\1', $filename);
+    if (preg_match('/^[0-9a-f]{40}$/', $commitOfFilename)) {
+      $commit2filename[$commitOfFilename] = $filename;
+    }
+  }
+  //var_dump($commit2filename);
+
+
+  print('<hr>');
+  print('<form>');
+  // TODO: --color=always, and convert to html colors
+  //$command = '(cd cache/repo && git log --graph --all --pretty=oneline) 2>&1';
+  $command = '(cd cache/repo && git log --graph --all --pretty=format:"%H -%d %s (%cr) <%an>") 2>&1';
+  //$command = '(cd cache/repo && git log --graph --all --pretty=format:"%H (%cr) <%an> -%d %s") 2>&1';
+  exec($command, $output, $exitcode);
+  if ($exitcode != 0) {
+    print("ERROR: exitcode $exitcode not as expected from command ".htmlspecialchars($command)."<br>");
+    exit(0);
+  }
+
+  $line2commit = [];
+  $commits = [];
+  foreach ($output as $line) {
+    $commit = preg_replace('/^[^0-9a-f]*([0-9a-f]{40}).*$/', '\1', $line);
+    if (preg_match('/^[0-9a-f]{40}$/', $commit)) {
+      array_push($commits, $commit);
+      array_push($line2commit, $commit);
+    } else {
+      array_push($line2commit, NULL);
+    }
+  }
+  CHECK(count($line2commit) == count($output));
+  sort($commits);
+  $prefix_len = find_unique_prefix_length($commits);
+
+  print('(See <a href="https://github.com/cutelyaware/magiccube4d/commits">https://github.com/cutelyaware/magiccube4d/commits<a> for a more detailed commit list.)<br>'."\n");
+  print('<pre>');
+  print('<table cellspacing="0" cellpadding="0">'."\n");
+  $nlines = count($output);
+  for ($i = 0; $i < $nlines; ++$i) {
+    $line = $output[$i];
+    $commit = $line2commit[$i];
+
+    $escaped_line = htmlspecialchars($line);
+
+    if ($commit != NULL) {
+      $commit_prefix = substr($commit, 0, $prefix_len);
+      $escaped_line = preg_replace("/$commit/", '<a href="https://github.com/cutelyaware/magiccube4d/commit/'.$commit.'">'.$commit_prefix.'</a>', $escaped_line);
+    }
+
+    print("<tr>");
+    if ($commit != NULL) {
+      //print('commit="'.$commit.'"');
+      if (array_key_exists($commit, $commit2filename)) {
+        print('<td style="text-align:center">');
+        print('<span style="font-size: 10px"><a href="cache/'.htmlspecialchars($commit2filename[$commit]).'">Download</a></span>');
+        print("<td>");
+        print('&nbsp;'.$escaped_line);
+      } else {
+        print('<td style="text-align:center">');
+        //print('<button type="submit" name="commit" value="'.$commit.'" style="font-size: 10px;">Build&nbsp;jar</button>');
+        print('<button type="submit" name="commit" value="'.$commit.'" style="font-size: 10px;">Build</button>');
+        print("<td>");
+        print('&nbsp;'.$escaped_line);
+      }
+    } else {
+      // no commit on this line, just graphics
+      print("<td>");
+      print("<td>");
+      print('&nbsp;'.$escaped_line);
+    }
+    print("\n");
+  }
+  print('</table>');
+  print('</pre>');
+  print('</form>');
+
+}
+
+print('<form>');
+print('<button type="submit" name="clear">Clear</button><br>');
 print('</form>');
 
 print('</body>');
