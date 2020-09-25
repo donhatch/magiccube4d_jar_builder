@@ -1,5 +1,8 @@
 <?php
 
+// TODO: colors! and maybe nicer graph
+// TODO: truncate long first lines of descriptions?
+
 $javac = '/usr/lib/jvm/java-11-openjdk-amd64/bin/javac';
 
 // Example jar name (note: colons in the name would mess up ability to be executable):
@@ -59,6 +62,10 @@ if ($commit != '' && !preg_match('/^[0-9a-f]{40}$/i', $commit)) {
 // from now on, we don't need to escape $commit
 
 print('<html>');
+print('<head>');
+print('<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>');
+//print('<script src="jquery-3.5.1.min.js"></script>');
+print('</head>');
 print('<body>');
 
 // Start by making sure the cache dir exists, and taking an advisory lock on it.
@@ -85,6 +92,7 @@ if (array_key_exists('clear', $_GET)) {
     exec('/bin/rm -f cache/magiccube4d*.jar', $output, $exitcode);
     //print('  output="'.htmlspecialchars($output).'"<br>');
     //print('  exitcode="'.htmlspecialchars($exitcode).'"<br>');
+    print('Cleared!<br>');
 }
 
 $list = [];
@@ -116,9 +124,10 @@ if ($commit != '') {
   if ($found) {
     print('Commit '.$commit.' seems to be built already:<br><a href="cache/'.$witness.'">'.htmlspecialchars($witness).'</a><br>');
   } else {
-    print('Commit '.$commit.' doesn\'t seem to be built already; building...<br>');
+    print('Commit '.$commit.' doesn\'t seem to be built already; building...');
     print('<hr>');
-    print('<div>');
+    print('<button id="togglebuildtranscript" type="submit" name="clear" onclick="if ($(\'#togglebuildtranscript\').html() === \'Show build transcript\') {$(\'#buildtranscript\').show(250); $(\'#togglebuildtranscript\').html(\'Hide build transcript\');} else {$(\'#buildtranscript\').hide(250); $(\'#togglebuildtranscript\').html(\'Show build transcript\');}" style="display:none">Show build transcript</button>');
+    print('<div id="buildtranscript">');
     ob_flush();
     flush();
 
@@ -216,10 +225,18 @@ if ($commit != '') {
 
     }
 
-    print('<div>');
+    print('</div>');
 
+    print('<hr>');
     print('Done.<br>');
     print('Hopefully that built: <a href="cache/'.$filename.'">'.$filename."</a><br>");
+
+    print("<script>");
+
+    print('  $("#buildtranscript").hide(250, function() {$("#togglebuildtranscript").show();})'."\n");
+    print('  $("#togglebuildtranscript").show()'."\n");
+
+    print("</script>\n");
   }
 }  // $commit != ''
 
@@ -230,11 +247,9 @@ if (false) {
   print('<br>');
   print('(see <a href="https://github.com/cutelyaware/magiccube4d/commits">https://github.com/cutelyaware/magiccube4d/commits<a> for commit history)<br>');
   print("<hr>");
-}
 
 // weird-- If I end the form in any reasonable place, it adds an obnoxious blank line somewhere
 
-if (false) {
   if (count($list) == 0) {
     print("Nothing previously built.");
   } else {
@@ -247,8 +262,8 @@ if (false) {
     print('<form>');
     print('<button type="submit" name="clear">Clear</button><br>');
   }
+  print('</form>');
 }
-print('</form>');
 
 if (true) {
 
@@ -337,6 +352,7 @@ if (true) {
 
 }
 
+// use post, so that clear doesn't end up in the url bar
 print('<form>');
 print('<button type="submit" name="clear">Clear</button><br>');
 print('</form>');
