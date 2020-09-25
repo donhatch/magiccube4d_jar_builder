@@ -165,7 +165,7 @@ if ($commit != '') {
           exit(0);
         }
       } else {
-        $command = '(cd cache/repo && GIT_TERMINAL_PROMPT=0 git checkout --quiet master && git pull --quiet --ff-only)';
+        $command = '(cd cache/repo && GIT_TERMINAL_PROMPT=0 git checkout --quiet master && git pull --quiet --all --ff-only)';
         $output = exec_or_die($command);
         if ($output !== '') {
           print('ERROR: output "'.htmlspecialchars($output).'" does not look as expected!<br>');
