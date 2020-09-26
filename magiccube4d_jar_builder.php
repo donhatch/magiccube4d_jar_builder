@@ -1,7 +1,6 @@
 <?php
 
-// TODO: colors! and maybe nicer graph
-// TODO: truncate long first lines of descriptions?
+// TODO: maybe nicer graph?  or maybe it's fine
 
 $javac = '/usr/lib/jvm/java-11-openjdk-amd64/bin/javac';
 
@@ -52,6 +51,42 @@ function find_unique_prefix_length($sorted_commits) {
   CHECK(false);
 }  // find_unique_prefix_length
 
+function ansi2htmlOne($ansiString) {
+  // https://stackoverflow.com/questions/1375683/converting-ansi-escape-sequences-to-html-using-php#answer-1375736
+  $dictionary = array(
+      // bold
+      '[1;37m' => '<span style="font-weight:bold; color:white">',
+      '[1;36m' => '<span style="font-weight:bold; color:#00bbbb">',  // darker cyan to be less garish
+      '[1;35m' => '<span style="font-weight:bold; color:magenta">',
+      '[1;34m' => '<span style="font-weight:bold; color:blue">',
+      '[1;33m' => '<span style="font-weight:bold; color:#ff8000">',  // darkish orange instead of yellow
+      '[1;32m' => '<span style="font-weight:bold; color:green">',
+      '[1;31m' => '<span style="font-weight:bold; color:red">',
+      '[1;30m' => '<span style="font-weight:bold; color:black">',
+
+      // non-bold
+      '[37m'   => '<span style="color:white">',
+      '[36m'   => '<span style="color:#00bbbb">',  // darker cyan to be less garish
+      '[35m'   => '<span style="color:magenta">',
+      '[34m'   => '<span style="color:blue">',
+      '[33m'   => '<span style="color:#ff8000">',  // darkish orange instead of yellow
+      '[32m'   => '<span style="color:green">',
+      '[31m'   => '<span style="color:red">',
+      '[30m'   => '<span style="color:black">',
+
+      '[m'   => '</span>',
+  );
+  $htmlString = str_replace(array_keys($dictionary), $dictionary, $ansiString);
+  return $htmlString;
+}  // ansi2html
+function ansi2htmlMany($ansiStrings) {
+  $answer = [];
+  foreach ($ansiStrings as $ansiString) {
+    array_push($answer, ansi2htmlOne($ansiString));
+  }
+  return $answer;
+}
+
 
 
 $commit = trim($_GET["commit"]);
@@ -66,7 +101,7 @@ print('<head>');
 print('<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>');
 //print('<script src="jquery-3.5.1.min.js"></script>');
 print('</head>');
-print('<body>');
+print('<body style="color:black; background-color:white;">');
 
 // Start by making sure the cache dir exists, and taking an advisory lock on it.
 exec('mkdir -p cache');
@@ -283,10 +318,16 @@ if (true) {
 
   print('<hr>');
   print('<form>');
+
   // TODO: --color=always, and convert to html colors
   //$command = '(cd cache/repo && git log --graph --all --pretty=oneline) 2>&1';
-  $command = '(cd cache/repo && git log --graph --all --pretty=format:"%H -%d %s (%cr) <%an>") 2>&1';
-  //$command = '(cd cache/repo && git log --graph --all --pretty=format:"%H (%cr) <%an> -%d %s") 2>&1';
+  // Started from here: https://coderwall.com/p/euwpig/a-better-git-log
+  // - added --all --color=always
+  // Other possible ideas here: https://stackoverflow.com/questions/1441010/the-shortest-possible-output-from-git-log-containing-author-and-date
+  //$command = '(cd cache/repo && git log --graph --all --pretty=format:"%H -%d %s (%cr) <%an>" --color=always) 2>&1';
+  // Note: the trunc thing usually pads, but that gets crunched out because html.  Otherwise I might not want it.
+  $command = '(cd cache/repo && git log --graph --all --pretty=format:"%H -%C(auto)%d%Creset %<(100,trunc)%s %C(green)(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --color=always) 2>&1';
+
   exec($command, $output, $exitcode);
   if ($exitcode != 0) {
     print("ERROR: exitcode $exitcode not as expected from command ".htmlspecialchars($command)."<br>");
@@ -296,7 +337,12 @@ if (true) {
   $line2commit = [];
   $commits = [];
   foreach ($output as $line) {
-    $commit = preg_replace('/^[^0-9a-f]*([0-9a-f]{40}).*$/', '\1', $line);
+    if (false) {
+      var_dump($line);
+      print("<br>");
+    }
+    // CBB: assumption: commit hash doesn't appear, surrounded by spaces, in the first part of the description.
+    $commit = preg_replace('/^.* ([0-9a-f]{40}) .*$/', '\1', $line);
     if (preg_match('/^[0-9a-f]{40}$/', $commit)) {
       array_push($commits, $commit);
       array_push($line2commit, $commit);
@@ -316,7 +362,8 @@ if (true) {
     $line = $output[$i];
     $commit = $line2commit[$i];
 
-    $escaped_line = htmlspecialchars($line);
+    $escaped_line = htmlspecialchars($line);  // fortunately this doesn't harm the ansi stuff
+    $escaped_line = ansi2htmlOne($escaped_line);
 
     if ($commit != NULL) {
       $commit_prefix = substr($commit, 0, $prefix_len);
