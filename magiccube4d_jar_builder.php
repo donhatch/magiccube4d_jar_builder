@@ -55,26 +55,26 @@ function ansi2htmlOne($ansiString) {
   // https://stackoverflow.com/questions/1375683/converting-ansi-escape-sequences-to-html-using-php#answer-1375736
   $dictionary = array(
       // bold
-      '[1;37m' => '<span style="font-weight:bold; color:white">',
-      '[1;36m' => '<span style="font-weight:bold; color:#00bbbb">',  // darker cyan to be less garish
-      '[1;35m' => '<span style="font-weight:bold; color:magenta">',
-      '[1;34m' => '<span style="font-weight:bold; color:blue">',
-      '[1;33m' => '<span style="font-weight:bold; color:#ff8000">',  // darkish orange instead of yellow
-      '[1;32m' => '<span style="font-weight:bold; color:green">',
-      '[1;31m' => '<span style="font-weight:bold; color:red">',
-      '[1;30m' => '<span style="font-weight:bold; color:black">',
+      "\e[1;37m" => '<span style="font-weight:bold; color:white">',
+      "\e[1;36m" => '<span style="font-weight:bold; color:#00bbbb">',  // darker cyan to be less garish
+      "\e[1;35m" => '<span style="font-weight:bold; color:magenta">',
+      "\e[1;34m" => '<span style="font-weight:bold; color:blue">',
+      "\e[1;33m" => '<span style="font-weight:bold; color:#ff8000">',  // darkish orange instead of yellow
+      "\e[1;32m" => '<span style="font-weight:bold; color:green">',
+      "\e[1;31m" => '<span style="font-weight:bold; color:red">',
+      "\e[1;30m" => '<span style="font-weight:bold; color:black">',
 
       // non-bold
-      '[37m'   => '<span style="color:white">',
-      '[36m'   => '<span style="color:#00bbbb">',  // darker cyan to be less garish
-      '[35m'   => '<span style="color:magenta">',
-      '[34m'   => '<span style="color:blue">',
-      '[33m'   => '<span style="color:#ff8000">',  // darkish orange instead of yellow
-      '[32m'   => '<span style="color:green">',
-      '[31m'   => '<span style="color:red">',
-      '[30m'   => '<span style="color:black">',
+      "\e[37m"   => '<span style="color:white">',
+      "\e[36m"   => '<span style="color:#00bbbb">',  // darker cyan to be less garish
+      "\e[35m"   => '<span style="color:magenta">',
+      "\e[34m"   => '<span style="color:blue">',
+      "\e[33m"   => '<span style="color:#ff8000">',  // darkish orange instead of yellow
+      "\e[32m"   => '<span style="color:green">',
+      "\e[31m"   => '<span style="color:red">',
+      "\e[30m"   => '<span style="color:black">',
 
-      '[m'   => '</span>',
+      "\e[m"   => '</span>',
   );
   $htmlString = str_replace(array_keys($dictionary), $dictionary, $ansiString);
   return $htmlString;
