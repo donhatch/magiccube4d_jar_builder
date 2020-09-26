@@ -1,8 +1,15 @@
 <?php
 
+// TODO: there's no longer any feedback when cloning or pulling the repo!  that's not good.  maybe show progress and then delete it?  not sure
 // TODO: maybe nicer graph, using different chars or glyphs or an svg?  or maybe it's fine
 
 $project = 'https://github.com/cutelyaware/magiccube4d';
+$srcdir_in_repo = 'src';
+
+// NOTE: this doesn't really work... it brings up the page and can build, as long as it's in the java6 branch, but the resulting jar file is mis-named and doesn't run.
+// Also requires blowing away cache/repo when switching
+//$project = 'https://github.com/donhatch/donhatchsw';
+//$srcdir_in_repo = '.';
 
 $javac = '/usr/lib/jvm/java-11-openjdk-amd64/bin/javac';
 
@@ -15,11 +22,44 @@ $javac = '/usr/lib/jvm/java-11-openjdk-amd64/bin/javac';
 
 function CHECK($cond) {
   if (!$cond) {
-    print("ERROR: CHECK failed");
+    print("ERROR: CHECK failed here:<br>");
+    print("<pre>");
+    // CBB: assumes no html special chars!
+    debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+    print("</pre>");
+
+    if (false) {
+      // If I need something more custom, then try something like this.
+      // This is just like debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS),
+      // but with a <br> at the end of each line, and indented
+      $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+      for ($i = 0; $i < count($backtrace); ++$i) {
+        $frame = $backtrace[$i];
+        //var_dump($frame); print("<br>");
+        print("<pre>");
+        print(htmlspecialchars('#'.$i.' '.$frame["function"].'() called at ['.$frame["file"].':'.$frame["line"]).']');
+        print("</pre>");
+      }
+    }
+    print("<hr>");
     exit(1);
   }
 }
 
+function silent_exec_or_die($command) {
+  //print('  executing command "'.htmlspecialchars($command).'"<br>');
+  //ob_flush();
+  //flush();
+  exec($command, $output, $exitcode);
+  $output = implode("\n", $output);
+  //print('  output="'.htmlspecialchars($output).'"<br>');
+  //print('  exitcode="'.htmlspecialchars($exitcode).'"<br>');
+  if ($exitcode != 0) {
+    print("ERROR: exitcode $exitcode not as expected from command ".htmlspecialchars($command)."<br>");
+    exit(0);
+  }
+  return $output;
+}
 function exec_or_die($command) {
   print('  executing command "'.htmlspecialchars($command).'"<br>');
   ob_flush();
@@ -37,11 +77,15 @@ function exec_or_die($command) {
 
 function find_unique_prefix_length($sorted_commits) {
   $n = count($sorted_commits);
-  for ($length = 0; $length < $n; $length++) {
+  for ($length = 0; $length <= 40; $length++) {
     $good_so_far = true;
     for ($i = 1; $i < $n; ++$i) {
+      if ($sorted_commits[$i-1] == $sorted_commits[$i]) {
+        // CBB: stopgap for the fact that some things from commit descriptions leak in here
+        continue;
+      }
       if (substr($sorted_commits[$i-1], 0, $length) == substr($sorted_commits[$i], 0, $length)) {
-        //print("$length is bad because i=$i  ".$sorted_commits[$i-1]." ".$sorted_commits[$i]."");
+        //print("length=$length is bad because i=$i  ".$sorted_commits[$i-1]." ".$sorted_commits[$i]."<br>");
         $good_so_far = false;
         break;
       }
@@ -50,7 +94,8 @@ function find_unique_prefix_length($sorted_commits) {
       return $length;
     }
   }
-  CHECK(false);
+  print("Couldn't find unique prefix!");
+  exit(1);
 }  // find_unique_prefix_length
 
 function ansi2htmlOne($ansiString) {
@@ -147,6 +192,23 @@ if ($handle = opendir('./cache')) {
 }
 rsort($list);
 
+if (!file_exists('cache/repo')) {
+  // Note that this `git clone` will create the cache directory if it doesn't exist too
+  $command = "GIT_TERMINAL_PROMPT=0 git clone --quiet $project.git cache/repo 2>&1";
+  $output = silent_exec_or_die($command);
+  if ($output !== '') {
+    print('ERROR: output "'.htmlspecialchars($output).'" does not look as expected!<br>');
+    exit(0);
+  }
+} else {
+  $command = '(cd cache/repo && GIT_TERMINAL_PROMPT=0 git checkout --quiet master && git pull --quiet --all --ff-only)';
+  $output = silent_exec_or_die($command);
+  if ($output !== '') {
+    print('ERROR: output "'.htmlspecialchars($output).'" does not look as expected!<br>');
+    exit(0);
+  }
+}
+
 if ($commit != '') {
   // Is commit in the list already?
   $found = false;
@@ -171,7 +233,7 @@ if ($commit != '') {
     if (true)
     {
       if (!file_exists('cache/mc4d-4-3-216.jar')) {
-        $url = 'https://github.com/cutelyaware/magiccube4d/releases/download/v4.3.216/mc4d-4-3-216.jar';
+        $url = "$project/releases/download/v4.3.216/mc4d-4-3-216.jar";
         print("fetching $url ...<br>");
         ob_flush();
         flush();
@@ -192,22 +254,6 @@ if ($commit != '') {
           $contents = file_get_contents($url);
         }
         print("contents = \"".htmlspecialchars($contents).'"<br>');
-      }
-      if (!file_exists('cache/repo')) {
-        // Note that this `git clone` will create the cache directory if it doesn't exist too
-        $command = 'GIT_TERMINAL_PROMPT=0 git clone --quiet https://github.com/cutelyaware/magiccube4d.git cache/repo 2>&1';
-        $output = exec_or_die($command);
-        if ($output !== '') {
-          print('ERROR: output "'.htmlspecialchars($output).'" does not look as expected!<br>');
-          exit(0);
-        }
-      } else {
-        $command = '(cd cache/repo && GIT_TERMINAL_PROMPT=0 git checkout --quiet master && git pull --quiet --all --ff-only)';
-        $output = exec_or_die($command);
-        if ($output !== '') {
-          print('ERROR: output "'.htmlspecialchars($output).'" does not look as expected!<br>');
-          exit(0);
-        }
       }
 
       $command = '(cd cache/repo && git show --quiet --no-patch --no-notes --pretty="%cI" '.$commit.') 2>&1';
@@ -237,12 +283,12 @@ if ($commit != '') {
       }
 
       if (true) {
-        $command = '(cd cache/repo/src && rm -f */*/*/*.class && '.$javac.' -source 1.6 -target 1.6 -Xlint:-options */*/*/*.java 2>&1 | (egrep -v "deprecat|unchecked" || true)) 2>&1';
+        $command = '(cd cache/repo/'.$srcdir_in_repo.' && rm -f */*/*/*.class && '.$javac.' -source 1.6 -target 1.6 -Xlint:-options */*/*/*.java 2>&1 | (egrep -v "deprecat|unchecked" || true)) 2>&1';
         $output = exec_or_die($command);
       }
 
       if (true) {
-        $command = '(/bin/rm -rf cache/scratch && mkdir cache/scratch && cd cache/scratch && jar -xf ../mc4d-4-3-216.jar && /bin/rm -rf com && cp -a ../../cache/repo/src/com ./ && sed "s/Class-Path: ./Created-By: (Don Hatch, from '.$commit.')/" < META-INF/MANIFEST.MF > META-INF/MANIFEST.MF.TEMP && /bin/mv META-INF/MANIFEST.MF.TEMP META-INF/MANIFEST.MF && jar -cfm ../../cache/'.$filename.' META-INF/MANIFEST.MF .) 2>&1';
+        $command = '(/bin/rm -rf cache/scratch && mkdir cache/scratch && cd cache/scratch && jar -xf ../mc4d-4-3-216.jar && /bin/rm -rf com && cp -a ../../cache/repo/'.$srcdir_in_repo.'/com ./ && sed "s/Class-Path: ./Created-By: (Don Hatch, from '.$commit.')/" < META-INF/MANIFEST.MF > META-INF/MANIFEST.MF.TEMP && /bin/mv META-INF/MANIFEST.MF.TEMP META-INF/MANIFEST.MF && jar -cfm ../../cache/'.$filename.' META-INF/MANIFEST.MF .) 2>&1';
         $output = exec_or_die($command);
       }
 
@@ -282,7 +328,7 @@ if (false) {
   print("<hr>");
   print('Build at this commit: <input type="text" name="commit" size="50">');
   print('<br>');
-  print('(see <a href="https://github.com/cutelyaware/magiccube4d/commits">https://github.com/cutelyaware/magiccube4d/commits<a> for commit history)<br>');
+  print('(see <a href="'.$project.'/commits">'.$project.'/commits<a> for commit history)<br>');
   print("<hr>");
 
 // weird-- If I end the form in any reasonable place, it adds an obnoxious blank line somewhere
@@ -356,7 +402,7 @@ if (true) {
   sort($commits);
   $prefix_len = find_unique_prefix_length($commits);
 
-  print('(See <a href="https://github.com/cutelyaware/magiccube4d/commits">https://github.com/cutelyaware/magiccube4d/commits<a> for a more detailed commit list.)<br>'."\n");
+  print('(See <a href="'.$project.'/commits">'.$project.'/commits<a> for a more detailed commit list.)<br>'."\n");
   print('<pre>');
   print('<table cellspacing="0" cellpadding="0" style="white-space:nowrap">'."\n");  // evidently this is where the nowrap must go; the <pre> doesn't make it happen, and making a span with white-space:nowrap doesn't either
   $nlines = count($output);
@@ -369,7 +415,7 @@ if (true) {
 
     if ($commit != NULL) {
       $commit_prefix = substr($commit, 0, $prefix_len);
-      $escaped_line = preg_replace("/$commit/", '<a href="https://github.com/cutelyaware/magiccube4d/commit/'.$commit.'">'.$commit_prefix.'</a>', $escaped_line);
+      $escaped_line = preg_replace("/$commit/", '<a href="'.$project.'/commit/'.$commit.'">'.$commit_prefix.'</a>', $escaped_line);
     }
 
     print('<tr>');
