@@ -1,6 +1,8 @@
 <?php
 
-// TODO: maybe nicer graph?  or maybe it's fine
+// TODO: maybe nicer graph, using different chars or glyphs or an svg?  or maybe it's fine
+
+$project = 'https://github.com/cutelyaware/magiccube4d';
 
 $javac = '/usr/lib/jvm/java-11-openjdk-amd64/bin/javac';
 
@@ -356,7 +358,7 @@ if (true) {
 
   print('(See <a href="https://github.com/cutelyaware/magiccube4d/commits">https://github.com/cutelyaware/magiccube4d/commits<a> for a more detailed commit list.)<br>'."\n");
   print('<pre>');
-  print('<table cellspacing="0" cellpadding="0">'."\n");
+  print('<table cellspacing="0" cellpadding="0" style="white-space:nowrap">'."\n");  // evidently this is where the nowrap must go; the <pre> doesn't make it happen, and making a span with white-space:nowrap doesn't either
   $nlines = count($output);
   for ($i = 0; $i < $nlines; ++$i) {
     $line = $output[$i];
@@ -370,7 +372,7 @@ if (true) {
       $escaped_line = preg_replace("/$commit/", '<a href="https://github.com/cutelyaware/magiccube4d/commit/'.$commit.'">'.$commit_prefix.'</a>', $escaped_line);
     }
 
-    print("<tr>");
+    print('<tr>');
     if ($commit != NULL) {
       //print('commit="'.$commit.'"');
       if (array_key_exists($commit, $commit2filename)) {
