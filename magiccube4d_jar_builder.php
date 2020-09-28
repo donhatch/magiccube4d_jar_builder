@@ -374,7 +374,7 @@ if (true) {
   // Other possible ideas here: https://stackoverflow.com/questions/1441010/the-shortest-possible-output-from-git-log-containing-author-and-date
   //$command = '(cd cache/repo && git log --graph --all --pretty=format:"%H -%d %s (%cr) <%an>" --color=always) 2>&1';
   // Note: the trunc thing usually pads, but that gets crunched out because html.  Otherwise I might not want it.
-  $command = '(cd cache/repo && git log --graph --all --pretty=format:"%H -%C(auto)%d%Creset %<(100,trunc)%s %C(green)(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit --color=always) 2>&1';
+  $command = '(cd cache/repo && git log --graph --all --author-date-order --pretty=format:"%H -%C(auto)%d%Creset %<(100,trunc)%s %C(green)(%ar) %C(bold blue)<%an>%Creset" --abbrev-commit --color=always) 2>&1';
 
   exec($command, $output, $exitcode);
   if ($exitcode != 0) {
