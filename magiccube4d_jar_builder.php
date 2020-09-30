@@ -201,7 +201,7 @@ if (!file_exists('cache/repo')) {
     exit(0);
   }
 } else {
-  $command = '(cd cache/repo && GIT_TERMINAL_PROMPT=0 git checkout --quiet master && git pull --quiet --all --ff-only)';
+  $command = '(cd cache/repo && GIT_TERMINAL_PROMPT=0 git checkout --quiet master && git pull --quiet --all --prune --ff-only)';
   $output = silent_exec_or_die($command);
   if ($output !== '') {
     print('ERROR: output "'.htmlspecialchars($output).'" does not look as expected!<br>');
