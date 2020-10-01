@@ -136,7 +136,7 @@ function ansi2htmlMany($ansiStrings) {
 
 
 
-$commit = trim($_GET["commit"]);
+$commit = (isset($_GET["commit"]) ? trim($_GET["commit"]) : '');
 if ($commit != '' && !preg_match('/^[0-9a-f]{40}$/i', $commit)) {
   print('<html lang="en" class="notranslate" translate="no"><body>ERROR: "'.htmlspecialchars($commit).'" does not look like a full commit hash</body></html>');
   exit(0);
@@ -352,8 +352,8 @@ if (true) {
 
   // Make a mapping from commit to previously (or just-now) built.
   $commit2filename = [];
-  if (preg_match('/^[0-9a-f]{40}$/', $commit)) {
-    $commit2filename[$commit] = $filename;  // CBB: not sure if this fills it in when "seems to be built already", should be more principled
+  if (preg_match('/^[0-9a-f]{40}$/', $commit) && isset($filename)) {
+    $commit2filename[$commit] = $filename;
   }
   foreach ($list as $filename) {
     $commitOfFilename = preg_replace('/^.*([0-9a-f]{40}).*$/', '\1', $filename);
