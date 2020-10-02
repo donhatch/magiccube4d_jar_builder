@@ -133,9 +133,11 @@ function ascii2boxdrawingOne($asciiString) {
   $answer = $asciiString;
   # TODO: replace with escaped?
   $answer = preg_replace("/>\\|</", ">│<", $answer);
-  $answer = preg_replace("/>\\/</", ">╱<", $answer);
-  $answer = preg_replace("/>\\\\</", ">╲<", $answer);
   $answer = preg_replace("/>-</", ">─<", $answer);
+  if (false) {  // Given that diagonals can never meet verticals, I think they actually look better shorter, so don't do this.
+    $answer = preg_replace("/>\\/</", ">╱<", $answer);
+    $answer = preg_replace("/>\\\\</", ">╲<", $answer);
+  }
   return $answer;
 }
 
