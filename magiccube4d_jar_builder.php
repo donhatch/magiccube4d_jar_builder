@@ -126,15 +126,18 @@ function ansi2htmlOne($ansiString) {
   $htmlString = str_replace(array_keys($dictionary), $dictionary, $ansiString);
   return $htmlString;
 }  // ansi2html
-function ansi2htmlMany($ansiStrings) {
-  $answer = [];
-  foreach ($ansiStrings as $ansiString) {
-    array_push($answer, ansi2htmlOne($ansiString));
-  }
+
+# TODO: maybe DejaVu Sans Mono?  https://github.com/magit/magit/issues/495#discussion_bucket
+# Slightly better chars (e.g. the pipes connect)
+function ascii2boxdrawingOne($asciiString) {
+  $answer = $asciiString;
+  # TODO: replace with escaped?
+  $answer = preg_replace("/>\\|</", ">│<", $answer);
+  $answer = preg_replace("/>\\/</", ">╱<", $answer);
+  $answer = preg_replace("/>\\\\</", ">╲<", $answer);
+  $answer = preg_replace("/>-</", ">─<", $answer);
   return $answer;
 }
-
-
 
 $commit = (isset($_GET["commit"]) ? trim($_GET["commit"]) : '');
 if ($commit != '' && !preg_match('/^[0-9a-f]{40}$/i', $commit)) {
@@ -417,6 +420,9 @@ if (true) {
       $commit_prefix = substr($commit, 0, $prefix_len);
       $escaped_line = preg_replace("/$commit/", '<a href="'.$project.'/commit/'.$commit.'">'.$commit_prefix.'</a>', $escaped_line);
     }
+
+    # after the substitudion of /commit/
+    $escaped_line = ascii2boxdrawingOne($escaped_line);
 
     print('<tr>');
     if ($commit != NULL) {
