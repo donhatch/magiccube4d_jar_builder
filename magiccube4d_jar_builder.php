@@ -428,8 +428,7 @@ if (true) {
         print('&nbsp;'.$escaped_line);
       } else {
         print('<td style="text-align:center">');
-        //print('<button type="submit" name="commit" value="'.$commit.'" style="font-size: 10px;">Build&nbsp;jar</button>');
-        print('<button type="submit" name="commit" value="'.$commit.'" style="font-size: 10px;">Build</button>');
+        print('<button type="submit" name="commit" value="'.$commit.'" style="font-size: 10px; padding:0px;">Build</button>');
         print("<td>");
         print('&nbsp;'.$escaped_line);
       }
